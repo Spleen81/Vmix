@@ -1,0 +1,109 @@
+1. **Lettura dei parametri dal file di configurazione**:
+   - La funzione `read_config()` legge  i parametri dal file `config.txt` e li restituisce in un dizionario.
+
+2. **Calcolo della luminosità stellare e del flusso radiante ricevuto dal pianeta**:
+   - Il calcolo della luminosità della stella `Stellar_L` utilizza la formula corretta basata sulla legge di Stefan-Boltzmann.
+   - Il calcolo del flusso radiante ricevuto dal pianeta `stellar_flux` tiene conto dell'albedo del pianeta, usando la formula `(1 - Albedo) * Stellar_L / (4 * np.pi * Planet_distance_m**2)`.
+
+3. **Calcolo del profilo di peso molecolare medio (`mu`)**:
+   - La funzione `calculate_mean_molecular_weight()` stima il peso molecolare medio di uno strato atmosferico.
+   - La normalizzazione dei mixing ratio per garantire che la somma sia 1 in ogni strato è un'aggiunta importante per il corretto calcolo di `mu`.
+
+4. **Calcolo del profilo di densità**:
+   - La funzione `get_density_initial()` calcola  il profilo di densità barometrico iniziale, utilizzando la legge di scala barometrica.
+   - La funzione `get_density_profile()` utilizza un algoritmo più complesso che tiene conto del profilo di temperatura, risultando in un calcolo più accurato della densità.
+
+5. **Calcolo del profilo di temperatura**:
+   - La funzione `get_temperature_profile()` calcola la temperatura di equilibrio del pianeta e applica il gradiente adiabatico.
+
+6. **Applicazione del mixing verticale**:
+   - La funzione `vertical_mixing()` implementa  l'algoritmo di mixing verticale, utilizzando i profili di densità e temperatura calcolati in precedenza.
+
+7. **Generazione dei grafici**:
+   - I grafici di densità, peso molecolare medio, temperatura e flusso verticale totale vengono generati e salvati in formato PDF.
+   
+8. **Struttura di species**
+	Prima colonna in nome della specie chimica, seconda colonna il peso atomico / molecolare in kg/moli
+	terza colonna il coefficiente di assorbimento molare epsilon in cm^2/mol
+	
+	
+                                            Appendice e approfondimenti:
+                                    -------------------------------------------
+         RADIANZA
+    Come lavora la funzione che calcola la radianza media:
+    Segue una logica simile a calculate_mean_molecular_weight, ma invece di calcolare il peso molecolare medio per ogni strato,
+    calcola l'epsilon medio di ogni strato pesato ai mixing ratio delle specie chimiche.
+	Accetta due parametri: atmo_data (l'array dei mixing ratio delle specie chimiche) e species_list il dizionario contenente
+	i pesi molecolari e gli epsilon delle specie).
+    Viene creato un array epsilon di dimensione pari al numero di strati atmosferici, inizializzato a zero.
+    Per ogni strato atmosferico i, viene calcolato il mixing ratio totale, se maggiore di zero, vengono normalizzati
+    i mixing ratio delle specie chimiche. Per ogni specie chimica j, viene ottenuto l'epsilon dalla lista species_list.
+    Il valore di layer_epsilon viene calcolato come la somma pesata degli epsilon delle specie chimiche, utilizzando i
+    mixing ratio normalizzati come pesi.
+    Il valore di layer_epsilon viene assegnato all'elemento corrispondente nell'array epsilon.
+    Se la somma dei mixing ratio è zero per uno strato, l'epsilon medio per quello strato viene impostato a zero.
+    Infine, l'array epsilon viene restituito. Restituirà un array epsilon contenente l'epsilon medio di ogni strato atmosferico,
+	calcolato come media pesata degli epsilon delle specie chimiche presenti in quel strato, utilizzando i mixing ratio come pesi.
+	
+	Come vengono integrati questi dati nella funzione che calcola il profilo di temperatura?
+	Si calcola il flusso radiativo entrante F_in inizialmente uguale al flusso stellare stellar_flux.
+    All'interno del ciclo for, calcoliamo l'opacità radiativa kappa per ogni strato atmosferico moltiplicando 
+	l'epsilon medio epsilon[i] per la densità rho[i]. L'opacità radiativa è una misura dell'assorbimento 
+	e dell'emissione di radiazione da parte del gas in quello strato.
+    Calcoliamo il flusso radiativo uscente F_out utilizzando la legge di Stefan-Boltzmann: F_out = kappa * S_B * T[i-1]**4. 
+	Questo rappresenta la radiazione emessa dallo strato atmosferico a causa della sua temperatura.
+    Calcoliamo il flusso radiativo netto F_net sottraendo il flusso uscente dal flusso entrante.
+    Aggiungiamo un termine aggiuntivo all'equazione per il calcolo della temperatura T[i]. 
+	Questo termine considera il contributo del flusso radiativo netto F_net al riscaldamento o al raffreddamento del gas nello strato atmosferico.
+    Aggiorniamo il flusso radiativo entrante F_in per il livello successivo impostandolo uguale al flusso uscente F_out del livello corrente.
+    In questo modo, il profilo di temperatura calcolato tiene conto sia del gradiente adiabatico e della densità (come prima), 
+	ma anche degli effetti radiativi dovuti alla presenza di specie chimiche assorbenti. 
+	Il flusso radiativo netto influenza la temperatura di ogni strato atmosferico, riscaldandolo o raffreddandolo 
+	a seconda del segno del flusso netto.
+
+
+        Criticità:
+    L'integrazione del modello radiativo comporta una grossa approssimazione dovuta al fatto che di ogni specie abbiamo soltanto
+	l'epsilon che è un coefficiente che ci dice quanto una molecola assorbe calore, in realtà per un calcolo corretto ci servirebbero
+	gli spettri di assorbimento di tutte le specie chimiche che incrociati con lo spettro della stella ci darebbero l'assorbimento
+	in funzione dello spettro di emissione della stella che può cambiare notevolmente rispetto a quello assunto in questo codice, 
+	che è quello solare BB.
+	
+	
+		MOTI CONVETTIVI
+		
+	Ecco come funziona la funzione convective_mixing:
+
+    La funzione prende come input i dati atmosferici (atmo_data), l'altitudine (z), il profilo di temperatura (T_profile),
+	il peso molecolare medio (mu), il profilo di densità (rho), il calore specifico a pressione costante (c_p),
+	l'accelerazione di gravità locale (g_local), il passo temporale (delta_t) e il tempo totale di simulazione (time).
+
+    La funzione calcola il gradiente adiabatico gamma utilizzando la formula gamma = mu * g_local / (R * c_p), dove R è 
+	la costante dei gas ideali.
+
+    La funzione crea una copia dei dati atmosferici (atmo_data_convected) per poter apportare modifiche 
+	senza alterare i dati originali.
+
+    Viene calcolato il numero di iterazioni necessarie (num_iterations) dividendo il tempo totale di simulazione per
+	il passo temporale (delta_t).
+
+    Viene creato un array vuoto (convective_displacements) della stessa dimensione dei dati atmosferici per memorizzare 
+	gli spostamenti convettivi.
+
+    La funzione update_convection è una funzione ricorsiva che calcola gli spostamenti convettivi a ogni livello atmosferico. 
+	All'interno di questa funzione: a. Viene calcolato il gradiente di temperatura dT_dz tra i livelli atmosferici adiacenti. 
+	b. Se dT_dz è minore del gradiente adiabatico negativo (-gamma), si verifica una convezione instabile, quindi i valori 
+	delle concentrazioni atmosferiche del livello superiore vengono uguagliati a quelli del livello inferiore, e lo spostamento 
+	convettivo viene registrato in convective_displacements. c. Se dT_dz è maggiore di -gamma, non si verifica convezione, 
+	quindi i valori delle concentrazioni atmosferiche rimangono invariati. d. La funzione update_convection viene chiamata 
+	ricorsivamente per il livello successivo finché non vengono esaminati tutti i livelli atmosferici.
+
+    Il ciclo esterno chiama la funzione update_convection per ogni iterazione temporale.
+
+    Infine, gli spostamenti convettivi vengono salvati in un file di testo (convective_displacements.txt), 
+	e la funzione restituisce i dati atmosferici modificati (atmo_data_convected) con gli effetti della convezione.
+
+    Il criterio utilizzato per determinare se si verifica la convezione instabile è basato sul confronto tra il gradiente di 
+	temperatura reale e il gradiente adiabatico. Se il gradiente di temperatura reale è più ripido del gradiente adiabatico 
+	(cioè dT_dz < -gamma), significa che l'atmosfera è instabile, e si verifica la convezione per ristabilire l'equilibrio.
+	E' sicuramente un approccio molto semplificato del processo convettivo reale.

@@ -1,0 +1,13 @@
+time=20  			# tempo finale in secondi
+delta_t=0.1 		# tempo di una iterazione
+Stellar-T=5778 		# temperatura stella in K° (5778)
+Stellar-L=3.828e26 	# Luminosità della stella (W) (3.827e26)
+Stellar-R=1 		# raggio stella in raggi solari
+Stellar-M=1.0 		# massa stella in masse solari
+Planet-R=1  		# raggio pianeta in raggi terrestri
+Planet-M=5			# massa pianeta in masse terrestri
+Albedo=0.3 			# Albedo del pianeta
+c_p=1005 			# calore specifico a livello del mare J/kg*K
+P_0 = 5				# pressione atmosferica al suolo in bar
+scala_altitudine=120000 	# spessore atmosfera in metri
+Planet_distance=1.496e11 	# distanza media in metri (1.5098e11)
